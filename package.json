@@ -1,0 +1,26 @@
+{
+  "name": "unbrowserify",
+  "version": "0.0.1",
+  "description": "Unpacks output from browserify.",
+  "main": "main.js",
+  "directories": {
+    "example": "example",
+    "test": "test"
+  },
+  "dependencies": {
+    "uglifyjs": "^2.4.10"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "mocha"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/hackedd/unbrowserify"
+  },
+  "author": "Paul Hooijenga",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/hackedd/unbrowserify/issues"
+  }
+}
