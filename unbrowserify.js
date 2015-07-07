@@ -94,6 +94,26 @@
         });
     }
 
+    function updateRequires(moduleFunction, mapping) {
+        var visitor, name;
+
+        visitor = new uglifyJS.TreeWalker(function (node) {
+            if (node instanceof uglifyJS.AST_Call &&
+                    node.expression instanceof uglifyJS.AST_SymbolRef &&
+                    (node.expression.name === "require" || node.expression.thedef.mangled_name === "require") &&
+                    node.args.length === 1 &&
+                    node.args[0] instanceof uglifyJS.AST_String) {
+
+                name = path.basename(node.args[0].value, ".js");
+                if (mapping[name]) {
+                    node.args[0].value = "./" + mapping[name] + ".js";
+                }
+            }
+        });
+
+        moduleFunction.walk(visitor);
+    }
+
     function extractModules(moduleObject, moduleNames) {
         var modules = {};
 
@@ -113,8 +133,6 @@
                 mapping[name] = moduleNames[id];
             });
 
-            /* TODO: replace calls to require with new module name */
-
             if (modules[moduleName]) {
                 topLevel = modules[moduleName];
             } else {
@@ -122,6 +140,7 @@
             }
 
             renameArguments(moduleFunction);
+            updateRequires(moduleFunction, mapping);
 
             topLevel.body = topLevel.body.concat(moduleFunction.body);
         });
