@@ -79,6 +79,21 @@
         return moduleNames;
     }
 
+    function renameArguments(moduleFunction) {
+        var argNames = [
+            "require", "module", "exports", "moduleSource",
+            "loadedModules", "mainIds"
+        ];
+
+        /* Rename the function arguments (if needed). The code generator has
+         * special logic to display the mangled name if it's present. */
+        moduleFunction.argnames.forEach(function (arg, i) {
+            if (arg.name !== argNames[i]) {
+                arg.thedef.mangled_name = argNames[i];
+            }
+        });
+    }
+
     function extractModules(moduleObject, moduleNames) {
         var modules = {};
 
@@ -98,8 +113,6 @@
                 mapping[name] = moduleNames[id];
             });
 
-            /* TODO: replace function arguments with correct names */
-            /* (require, module, exports, (moduleSource, loadedModules, mainIds)) */
             /* TODO: replace calls to require with new module name */
 
             if (modules[moduleName]) {
@@ -107,6 +120,8 @@
             } else {
                 topLevel = modules[moduleName] = new uglifyJS.AST_Toplevel({body: []});
             }
+
+            renameArguments(moduleFunction);
 
             topLevel.body = topLevel.body.concat(moduleFunction.body);
         });
