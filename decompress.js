@@ -26,26 +26,34 @@
     });
 
     function removeSequences(body) {
-        var i, child;
+        var i, j, child, seq, lifted,
+            nodeTypes = [
+                { type: uglifyJS.AST_Return, field: "value" },
+                { type: uglifyJS.AST_SimpleStatement, field: "body" },
+                { type: uglifyJS.AST_If, field: "condition" },
+                { type: uglifyJS.AST_For, field: "init" },
+                { type: uglifyJS.AST_With, field: "expression" },
+                { type: uglifyJS.AST_Switch, field: "expression" }
+            ];
 
-        for (i = 0; i < body.length; i += 1) {
+        i = 0;
+        while (i < body.length) {
             child = body[i];
 
-            if (child instanceof uglifyJS.AST_Return && child.value instanceof uglifyJS.AST_Seq) {
-                /* return a, b; => a; return b; */
-                body.splice(i, 0, new uglifyJS.AST_SimpleStatement({body: child.value.car}));
-                child.value = child.value.cdr;
-            } else if (child instanceof uglifyJS.AST_SimpleStatement && child.body instanceof uglifyJS.AST_Seq) {
-                /* a, b; => a; b; */
-                body.splice(i, 0, new uglifyJS.AST_SimpleStatement({body: child.body.car}));
-                child.body = child.body.cdr;
-            } else if (child instanceof uglifyJS.AST_If && child.condition instanceof uglifyJS.AST_Seq) {
-                /* if (a, b) => a; if (b) */
-                body.splice(i, 0, new uglifyJS.AST_SimpleStatement({body: child.condition.car}));
-                child.condition = child.condition.cdr;
-            } /*else {
-                 console.log(child.TYPE, child.print_to_string());
-            }*/
+            lifted = false;
+            for (j = 0; j < nodeTypes.length; j += 1) {
+                if (child instanceof nodeTypes[j].type && child[nodeTypes[j].field] instanceof uglifyJS.AST_Seq) {
+                    seq = child[nodeTypes[j].field];
+                    body.splice(i, 0, new uglifyJS.AST_SimpleStatement({body: seq.car}));
+                    child[nodeTypes[j].field] = seq.cdr;
+                    lifted = true;
+                    break;
+                }
+            }
+
+            if (lifted === false) {
+                i += 1;
+            }
         }
     }
 

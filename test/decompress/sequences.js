@@ -72,3 +72,42 @@ test5: {
         }
     }
 }
+
+test6: {
+    transform: "sequences";
+
+    input: {
+        if (x = 5, y) z();
+
+        for (x = 5, i = 0; i < 5; i++) console.log(i);
+
+        for (x = 5; i < 5; i++) console.log(i);
+
+        switch (x = 5, y) {}
+
+        with (x = 5, obj);
+    }
+    expect: {
+        x = 5;
+        if (y) {
+            z();
+        }
+
+        x = 5;
+        for (i = 0; i < 5; i++) {
+            console.log(i);
+        }
+
+        for (x = 5; i < 5; i++) {
+            console.log(i);
+        }
+
+        x = 5;
+        switch (y) {
+        }
+
+        x = 5;
+        with (obj) {
+        }
+    }
+}
