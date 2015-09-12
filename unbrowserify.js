@@ -4,7 +4,8 @@
 
     var uglifyJS = require("uglifyjs"),
         fs = require("fs"),
-        path = require("path");
+        path = require("path"),
+        decompress = require("./decompress");
 
     function parseFile(filename) {
         var code = fs.readFileSync(filename, "utf8"),
@@ -156,6 +157,7 @@
             moduleNames,
             moduleName,
             moduleFile,
+            module,
             ast = parseFile(filename);
 
         /*
@@ -192,9 +194,13 @@
 
         for (moduleName in modules) {
             if (modules.hasOwnProperty(moduleName)) {
+                module = modules[moduleName];
+                decompress.decompress(module);
+
                 moduleFile = path.join(outputDirectory, moduleName + ".js");
                 console.log("Writing " + moduleFile);
-                outputCode(modules[moduleName], moduleFile);
+
+                outputCode(module, moduleFile);
             }
         }
 
