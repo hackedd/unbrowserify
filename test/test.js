@@ -19,23 +19,23 @@
                 var ast = parseString("var foo; !function e(){ }(foo);"),
                     f = unbrowserify.findMainFunction(ast);
 
-                assert.equal(true, f instanceof uglifyJS.AST_Call);
-                assert.equal("e", f.expression.name.name);
+                assert.equal(f instanceof uglifyJS.AST_Call, true);
+                assert.equal(f.expression.name.name, "e");
             });
 
             it("should find the first function if multiple defined", function () {
                 var ast = parseString("var foo; !function e(){ }(foo); !function f(){ }(foo);"),
                     f = unbrowserify.findMainFunction(ast);
 
-                assert.equal(true, f instanceof uglifyJS.AST_Call);
-                assert.equal("e", f.expression.name.name);
+                assert.equal(f instanceof uglifyJS.AST_Call, true);
+                assert.equal(f.expression.name.name, "e");
             });
 
             it("should return undefined if no functions are defined", function () {
                 var ast = parseString("var foo;"),
                     f = unbrowserify.findMainFunction(ast);
 
-                assert.equal(undefined, f);
+                assert.equal(f, undefined);
             });
         });
 
