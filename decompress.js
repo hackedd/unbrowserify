@@ -20,6 +20,13 @@
             return new uglifyJS.AST_NaN();
         }
 
+        /* 1/0 => Infinity */
+        if (node instanceof uglifyJS.AST_Binary && node.operator === "/" &&
+                node.left instanceof uglifyJS.AST_Number && node.left.value === 1 &&
+                node.right instanceof uglifyJS.AST_Number &&  node.right.value === 0) {
+            return new uglifyJS.AST_Infinity();
+        }
+
         /* !0 => true, !1 => false */
         if (node instanceof uglifyJS.AST_UnaryPrefix && node.operator === "!" &&
                 node.expression instanceof uglifyJS.AST_Number) {
