@@ -7,6 +7,7 @@
         path = require("path"),
         fs = require("fs"),
         uglifyJS = require("uglifyjs"),
+        here = path.dirname(module.filename),
         suffix = process.env.TEST_COV ? "-cov" : "",
         unbrowserify = require("../unbrowserify" + suffix),
         decompress = require("../decompress" + suffix);
@@ -24,6 +25,16 @@
             bracketize: true
         });
     }
+
+    Object.values = function (obj) {
+        var key, values = [];
+        for (key in obj) {
+            if (obj.hasOwnProperty(key)) {
+                values.push(obj[key]);
+            }
+        }
+        return values;
+    };
 
     describe("unbrowserify", function () {
         describe("findMainFunction", function () {
@@ -51,22 +62,71 @@
             });
         });
 
+        function extractHelper(bundleFilename, test) {
+            var bundle = path.resolve(here, "fib", bundleFilename),
+                bundleSource = fs.readFileSync(bundle, "utf8"),
+                ast = parseString(bundleSource, bundle),
+                mainFunction = unbrowserify.findMainFunction(ast),
+                moduleObject = mainFunction.args[0],
+                main = mainFunction.args[2],
+                moduleNames = unbrowserify.extractModuleNames(moduleObject, main);
+
+            test(moduleObject, moduleNames);
+        }
+
         describe("extractModuleNames", function () {
-            it("should find the module names");
+            it("should find the module names", function () {
+                extractHelper("bundle.js", function (moduleObject, moduleNames) {
+                    var modules = Object.values(moduleNames).sort();
+                    assert.deepEqual(modules, ["fib", "main"]);
+                });
+            });
+
+            it("should find the module names after compression", function () {
+                extractHelper("bundle-min.js", function (moduleObject, moduleNames) {
+                    var modules = Object.values(moduleNames).sort();
+                    assert.deepEqual(modules, ["fib", "main"]);
+                });
+            });
         });
 
         describe("extractModules", function () {
-            it("should find the modules");
+            var fib = path.resolve(here, "fib", "fib.js"),
+                fibSource = fs.readFileSync(fib, "utf8"),
+                expected = parseString(fibSource, fib);
+
+            it("should find the modules", function () {
+                extractHelper("bundle.js", function (moduleObject, moduleNames) {
+                    var modules = unbrowserify.extractModules(moduleObject, moduleNames);
+
+                    assert.ok(modules.main instanceof uglifyJS.AST_Toplevel);
+                    assert.ok(modules.fib instanceof uglifyJS.AST_Toplevel);
+
+                    /* Check round-trip. */
+                    assert.equal(formatCode(modules.fib), formatCode(expected));
+                });
+            });
+
+            it("should find the modules after compression", function () {
+                extractHelper("bundle-min.js", function (moduleObject, moduleNames) {
+                    var modules = unbrowserify.extractModules(moduleObject, moduleNames);
+
+                    assert.ok(modules.main instanceof uglifyJS.AST_Toplevel);
+                    assert.ok(modules.fib instanceof uglifyJS.AST_Toplevel);
+
+                    /* The code for the two modules is no longer equal, because it has been compressed. */
+                });
+            });
         });
     });
 
     describe("decompress", function () {
-        var here = path.dirname(module.filename),
-            directory = path.resolve(here, "decompress");
+        var directory = path.resolve(here, "decompress");
 
         function findTestFiles() {
+            var isJs = /\.js$/;
             return fs.readdirSync(directory).filter(function (name) {
-                return /\.js$/.test(name);
+                return isJs.test(name);
             });
         }
 
@@ -104,7 +164,9 @@
                     }
 
                     throw new Error("Unsupported label '" + name + "' at line " + node.label.start.line);
-                } else if (!inTest && !(node instanceof uglifyJS.AST_Toplevel)) {
+                }
+
+                if (!inTest && !(node instanceof uglifyJS.AST_Toplevel)) {
                     throw new Error("Unsupported statement " + node.TYPE + " at line " + node.start.line);
                 }
             });
