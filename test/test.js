@@ -37,6 +37,18 @@
     };
 
     describe("unbrowserify", function () {
+        describe("formatCode", function () {
+            it("should output each var on a new line", function () {
+                var ast = parseString("var a = 1, b = 2, c = 3;");
+                assert.equal(formatCode(ast), "var a = 1,\n    b = 2,\n    c = 3;");
+            });
+
+            it("should keep vars in a for on the same line", function () {
+                var ast = parseString("for (var i = 0, j = 0; ;) {}");
+                assert.equal(formatCode(ast), "for (var i = 0, j = 0; ;) {}");
+            });
+        });
+
         describe("findMainFunction", function () {
             it("should find the main function", function () {
                 var ast = parseString("var foo; !function e(){ }(foo);"),

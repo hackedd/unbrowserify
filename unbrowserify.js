@@ -7,6 +7,39 @@
         path = require("path"),
         decompress = require("./decompress");
 
+    /* Override printing of variable definitions to output each var on a separate line. */
+    uglifyJS.AST_Definitions.prototype._do_print = function (output, kind) {
+        var self = this,
+            p = output.parent(),
+            inFor = (p instanceof uglifyJS.AST_For || p instanceof uglifyJS.AST_ForIn) && p.init === this;
+
+        output.print(kind);
+        output.space();
+
+        if (inFor) {
+            this.definitions.forEach(function (def, i) {
+                if (i !== 0) {
+                    output.comma();
+                }
+                def.print(output);
+            });
+        } else {
+            output.with_indent(output.indentation() + 4, function () {
+                self.definitions.forEach(function (def, i) {
+                    if (i !== 0) {
+                        output.print(",");
+                        output.newline();
+                        output.indent();
+                    }
+
+                    def.print(output);
+                });
+            });
+
+            output.semicolon();
+        }
+    };
+
     function parseFile(filename) {
         var code = fs.readFileSync(filename, "utf8"),
             ast = uglifyJS.parse(code, {filename: filename});
