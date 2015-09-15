@@ -7,8 +7,9 @@
         path = require("path"),
         fs = require("fs"),
         uglifyJS = require("uglifyjs"),
-        unbrowserify = require("../unbrowserify"),
-        decompress = require("../decompress");
+        suffix = process.env.TEST_COV ? "-cov" : "",
+        unbrowserify = require("../unbrowserify" + suffix),
+        decompress = require("../decompress" + suffix);
 
     function parseString(code, filename) {
         var ast = uglifyJS.parse(code, {filename: filename});
