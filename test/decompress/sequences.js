@@ -99,3 +99,32 @@ test6: {
         }
     }
 }
+
+test7: {
+    input: {
+        var a = (x(), y());
+        b = (x(), y());
+    }
+    expect: {
+        x();
+        var a = y();
+        x();
+        b = y();
+    }
+}
+
+test8: {
+    input: {
+        a && (b = c, d() && e(), f()), g();
+    }
+    expect: {
+        if (a) {
+            b = c;
+            if (d()) {
+                e();
+            }
+            f();
+        }
+        g();
+    }
+}

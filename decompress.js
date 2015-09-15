@@ -21,7 +21,7 @@
             body = node[field],
             single = body instanceof uglifyJS.AST_Node;
 
-        if (body === null) {
+        if (body === null || body === undefined) {
             return;
         }
 
@@ -61,6 +61,24 @@
 
         replaceInBlock(node, field, function (child) {
             var j, seq;
+
+            if (child instanceof uglifyJS.AST_Var) {
+                for (j = 0; j < child.definitions.length; j += 1) {
+                    if (child.definitions[j].value instanceof uglifyJS.AST_Seq) {
+                        seq = child.definitions[j].value;
+                        child.definitions[j].value = seq.cdr;
+                        return [new uglifyJS.AST_SimpleStatement({body: seq.car}), child];
+                    }
+                }
+            }
+
+            if (child instanceof uglifyJS.AST_SimpleStatement &&
+                    child.body instanceof uglifyJS.AST_Assign &&
+                    child.body.right instanceof uglifyJS.AST_Seq) {
+                seq = child.body.right;
+                child.body.right = seq.cdr;
+                return [new uglifyJS.AST_SimpleStatement({body: seq.car}), child];
+            }
 
             for (j = 0; j < nodeTypes.length; j += 1) {
                 if (child instanceof nodeTypes[j].type && child[nodeTypes[j].field] instanceof uglifyJS.AST_Seq) {
@@ -115,17 +133,23 @@
             if (node instanceof uglifyJS.AST_SimpleStatement && node.body instanceof uglifyJS.AST_Binary) {
                 /* a && b; => if (a) { b; } */
                 if (node.body.operator === "&&") {
-                    return new uglifyJS.AST_If({
+                    node = new uglifyJS.AST_If({
                         condition: node.body.left,
-                        body: asStatement(node.body.right)
+                        body: asStatement(node.body.right),
+                        alternative: null
                     });
+                    node.transform(this);
+                    return node;
                 }
                 /* a || b; => if (!a) { b; } */
                 if (node.body.operator === "||") {
-                    return new uglifyJS.AST_If({
+                    node = new uglifyJS.AST_If({
                         condition: new uglifyJS.AST_UnaryPrefix({operator: "!", expression: node.body.left}),
-                        body: asStatement(node.body.right)
+                        body: asStatement(node.body.right),
+                        alternative: null
                     });
+                    node.transform(this);
+                    return node;
                 }
             }
 
@@ -146,8 +170,6 @@
                     condition: node.value.condition,
                     body: new uglifyJS.AST_Return({ value: node.value.consequent }),
                     alternative: new uglifyJS.AST_Return({ value: node.value.alternative })
-                    //body: makeReturn(node.value.consequent),
-                    //alternative: makeReturn(node.value.alternative)
                 });
                 node.transform(this);
                 return node;
@@ -163,7 +185,6 @@
                                 new uglifyJS.AST_Return({ value: null }) ];
                     }
                 });
-
             }
         }
     }
