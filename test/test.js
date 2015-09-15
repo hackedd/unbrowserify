@@ -92,7 +92,7 @@
                         return true;
                     }
 
-                    if (name === "description" || name === "transform") {
+                    if (name === "description") {
                         testCase[name] = node.body.start.value;
                         return true;
                     }
@@ -115,22 +115,11 @@
         findTestFiles().forEach(function (filename) {
             describe(filename, function () {
                 getTestCases(filename).forEach(function (testCase) {
-                    var transform, doDecompress;
-
-                    if (testCase.transform) {
-                        transform = decompress.transforms[testCase.transform];
-                        assert.ok(transform);
-                        doDecompress = function (node) {
-                            node.transform(transform)
-                        };
-                    } else {
-                        doDecompress = decompress.decompress;
-                    }
-
                     it(testCase.description || testCase.name, function () {
                         var output, expect;
 
-                        doDecompress(testCase.input);
+                        decompress(testCase.input);
+
                         output = formatCode(testCase.input);
                         expect = formatCode(testCase.expect);
 

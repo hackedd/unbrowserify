@@ -1,6 +1,4 @@
 test1: {
-    transform: "conditionals";
-
     input: {
         foo && bar();
         foo || bar();
@@ -16,8 +14,6 @@ test1: {
 }
 
 test2: {
-    transform: "conditionals";
-
     input: {
         foo ? x() : y();
         foo ? x() : bar ? y() : baz && z();
@@ -51,8 +47,6 @@ test2: {
 }
 
 test3: {
-    transform: "conditionals";
-
     input: {
         some_condition() && some_other_condition() && do_something();
         some_condition() && some_other_condition() ? do_something() : alternate();

@@ -1,6 +1,4 @@
 test1: {
-    transform: "sequences";
-
     input: {
         foo(), bar();
     }
@@ -11,8 +9,6 @@ test1: {
 }
 
 test2: {
-    transform: "sequences";
-
     input: {
         foo(), bar(), baz();
     }
@@ -24,8 +20,6 @@ test2: {
 }
 
 test3: {
-    transform: "sequences";
-
     input: {
         if (test) foo(), bar(), baz();
         else x(), y(), z();
@@ -44,8 +38,6 @@ test3: {
 }
 
 test4: {
-    transform: "sequences";
-
     input: {
         if (a(), test) b();
     }
@@ -58,8 +50,6 @@ test4: {
 }
 
 test5: {
-    transform: "sequences";
-
     input: {
         function f() {
             return a(), b();
@@ -74,8 +64,6 @@ test5: {
 }
 
 test6: {
-    transform: "sequences";
-
     input: {
         if (x = 5, y) z();
 

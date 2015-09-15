@@ -3,7 +3,11 @@
     "use strict";
 
     var uglifyJS = require("uglifyjs"),
-        transforms = {};
+        defaultOptions = {
+            constants: true,
+            sequences: true,
+            conditionals: true
+        };
 
     function asStatement(node) {
         if (node instanceof uglifyJS.AST_Statement) {
@@ -11,33 +15,6 @@
         }
         return new uglifyJS.AST_SimpleStatement({ body: node });
     }
-
-    transforms.replaceConstants = new uglifyJS.TreeTransformer(function (node) {
-        /* 0/0 => NaN */
-        if (node instanceof uglifyJS.AST_Binary && node.operator === "/" &&
-                node.left instanceof uglifyJS.AST_Number && node.left.value === 0 &&
-                node.right instanceof uglifyJS.AST_Number &&  node.right.value === 0) {
-            return new uglifyJS.AST_NaN();
-        }
-
-        /* 1/0 => Infinity */
-        if (node instanceof uglifyJS.AST_Binary && node.operator === "/" &&
-                node.left instanceof uglifyJS.AST_Number && node.left.value === 1 &&
-                node.right instanceof uglifyJS.AST_Number &&  node.right.value === 0) {
-            return new uglifyJS.AST_Infinity();
-        }
-
-        /* !0 => true, !1 => false */
-        if (node instanceof uglifyJS.AST_UnaryPrefix && node.operator === "!" &&
-                node.expression instanceof uglifyJS.AST_Number) {
-            if (node.expression.value === 0) {
-                return new uglifyJS.AST_True();
-            }
-            if (node.expression.value === 1) {
-                return new uglifyJS.AST_False();
-            }
-        }
-    });
 
     function removeSequences(body) {
         var i, j, child, seq, lifted,
@@ -80,54 +57,93 @@
         }
     }
 
-    transforms.sequences = new uglifyJS.TreeTransformer(function (node) {
-        if (node instanceof uglifyJS.AST_Block) {
-            removeSequences(node.body);
-        } else if (node instanceof uglifyJS.AST_StatementWithBody) {
-            removeSequencesSingle(node, "body");
-            if (node instanceof uglifyJS.AST_If) {
-                removeSequencesSingle(node, "alternative");
+    function transformBefore(node) {
+        if (this.options.constants) {
+            /* 0/0 => NaN */
+            if (node instanceof uglifyJS.AST_Binary && node.operator === "/" &&
+                    node.left instanceof uglifyJS.AST_Number && node.left.value === 0 &&
+                    node.right instanceof uglifyJS.AST_Number && node.right.value === 0) {
+                return new uglifyJS.AST_NaN();
             }
-        } /*else {
-            console.log(node.TYPE, node.print_to_string());
-        }*/
-    });
 
-    transforms.conditionals = new uglifyJS.TreeTransformer(function (node) {
-        if (node instanceof uglifyJS.AST_SimpleStatement && node.body instanceof uglifyJS.AST_Binary) {
-            if (node.body.operator === "&&") {
-                return new uglifyJS.AST_If({
-                    condition: node.body.left,
-                    body: asStatement(node.body.right)
-                });
+            /* 1/0 => Infinity */
+            if (node instanceof uglifyJS.AST_Binary && node.operator === "/" &&
+                    node.left instanceof uglifyJS.AST_Number && node.left.value === 1 &&
+                    node.right instanceof uglifyJS.AST_Number && node.right.value === 0) {
+                return new uglifyJS.AST_Infinity();
             }
-            if (node.body.operator === "||") {
-                return new uglifyJS.AST_If({
-                    condition: new uglifyJS.AST_UnaryPrefix({ operator: "!", expression: node.body.left }),
-                    body: asStatement(node.body.right)
-                });
+
+            /* !0 => true, !1 => false */
+            if (node instanceof uglifyJS.AST_UnaryPrefix && node.operator === "!" &&
+                    node.expression instanceof uglifyJS.AST_Number) {
+                if (node.expression.value === 0) {
+                    return new uglifyJS.AST_True();
+                }
+                if (node.expression.value === 1) {
+                    return new uglifyJS.AST_False();
+                }
             }
         }
 
-        if (node instanceof uglifyJS.AST_SimpleStatement && node.body instanceof uglifyJS.AST_Conditional) {
-            node = new uglifyJS.AST_If({
-                condition: node.body.condition,
-                body: asStatement(node.body.consequent),
-                alternative: asStatement(node.body.alternative)
-            });
-            node.transform(this);
-            return node;
+        if (this.options.sequences) {
+            if (node instanceof uglifyJS.AST_Block) {
+                removeSequences(node.body);
+            } else if (node instanceof uglifyJS.AST_StatementWithBody) {
+                removeSequencesSingle(node, "body");
+                if (node instanceof uglifyJS.AST_If) {
+                    removeSequencesSingle(node, "alternative");
+                }
+            }
         }
-    });
 
-    function decompress(node) {
-        node.transform(transforms.replaceConstants);
-        node.transform(transforms.sequences);
-        node.transform(transforms.conditionals);
+        if (this.options.conditionals) {
+            if (node instanceof uglifyJS.AST_SimpleStatement && node.body instanceof uglifyJS.AST_Binary) {
+                /* a && b; => if (a) { b; } */
+                if (node.body.operator === "&&") {
+                    return new uglifyJS.AST_If({
+                        condition: node.body.left,
+                        body: asStatement(node.body.right)
+                    });
+                }
+                /* a || b; => if (!a) { b; } */
+                if (node.body.operator === "||") {
+                    return new uglifyJS.AST_If({
+                        condition: new uglifyJS.AST_UnaryPrefix({operator: "!", expression: node.body.left}),
+                        body: asStatement(node.body.right)
+                    });
+                }
+            }
+
+            /* a ? b : c; => if (a) { b; } else { c; } */
+            if (node instanceof uglifyJS.AST_SimpleStatement && node.body instanceof uglifyJS.AST_Conditional) {
+                node = new uglifyJS.AST_If({
+                    condition: node.body.condition,
+                    body: asStatement(node.body.consequent),
+                    alternative: asStatement(node.body.alternative)
+                });
+                node.transform(this);
+                return node;
+            }
+        }
     }
 
-    module.exports = {
-        transforms: transforms,
-        decompress: decompress
-    };
+    function decompress(node, options) {
+        var k, transform;
+
+        if (options === undefined) {
+            options = defaultOptions;
+        } else {
+            for (k in defaultOptions) {
+                if (defaultOptions.hasOwnProperty(k) && options[k] === undefined) {
+                    options[k] = defaultOptions[k];
+                }
+            }
+        }
+
+        transform = new uglifyJS.TreeTransformer(transformBefore);
+        transform.options = options;
+        node.transform(transform);
+    }
+
+    module.exports = decompress;
 }());

@@ -1,6 +1,4 @@
 test1: {
-    transform: "replaceConstants";
-
     input: {
         var a = 0 / 0,
             b = !0,

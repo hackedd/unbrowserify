@@ -195,7 +195,7 @@
         for (moduleName in modules) {
             if (modules.hasOwnProperty(moduleName)) {
                 module = modules[moduleName];
-                decompress.decompress(module);
+                decompress(module);
 
                 moduleFile = path.join(outputDirectory, moduleName + ".js");
                 console.log("Writing " + moduleFile);
