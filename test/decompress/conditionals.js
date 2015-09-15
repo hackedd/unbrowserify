@@ -63,3 +63,25 @@ test3: {
         }
     }
 }
+
+test4: {
+    input: {
+        function foo(r, t) {
+            return parseInt(r) ? void xyz(r) : (t || (t = "foo/" + r), void xyz(t));
+        }
+    }
+    expect: {
+        function foo(r, t) {
+            if (parseInt(r)) {
+                xyz(r);
+                return;
+            } else {
+                if (!t) {
+                    t = "foo/" + r;
+                }
+                xyz(t);
+                return;
+            }
+        }
+    }
+}

@@ -139,6 +139,32 @@
                 node.transform(this);
                 return node;
             }
+
+            /* return a ? b : c; => if (a) { return b; } else { return c; } */
+            if (node instanceof uglifyJS.AST_Return && node.value instanceof uglifyJS.AST_Conditional) {
+                node = new uglifyJS.AST_If({
+                    condition: node.value.condition,
+                    body: new uglifyJS.AST_Return({ value: node.value.consequent }),
+                    alternative: new uglifyJS.AST_Return({ value: node.value.alternative })
+                    //body: makeReturn(node.value.consequent),
+                    //alternative: makeReturn(node.value.alternative)
+                });
+                node.transform(this);
+                return node;
+            }
+
+            /* return void a(); => a(); return; */
+            if (node instanceof uglifyJS.AST_Block || node instanceof uglifyJS.AST_StatementWithBody) {
+                replaceInBlock(node, "body", function (child) {
+                    if (child instanceof uglifyJS.AST_Return &&
+                            child.value instanceof uglifyJS.AST_UnaryPrefix &&
+                            child.value.operator === "void") {
+                        return [new uglifyJS.AST_SimpleStatement({ body: child.value.expression }),
+                                new uglifyJS.AST_Return({ value: null }) ];
+                    }
+                });
+
+            }
         }
     }
 
