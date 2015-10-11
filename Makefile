@@ -1,7 +1,7 @@
 test: lint test/fib/bundle.js test/fib/bundle-min.js
 	mocha
 
-lint: unbrowserify.js decompress.js utils.js test/test.js test/fib/main.js test/fib/fib.js
+lint: unbrowserify.js decompress.js cli.js test/test.js test/fib/main.js test/fib/fib.js
 	jslint $? || true
 
 coverage: test unbrowserify-cov.js decompress-cov.js

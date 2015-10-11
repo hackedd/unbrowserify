@@ -2,7 +2,8 @@
   "name": "unbrowserify",
   "version": "0.0.1",
   "description": "Unpacks output from browserify.",
-  "main": "main.js",
+  "main": "unbrowserify.js",
+  "bin": "cli.js",
   "directories": {
     "example": "example",
     "test": "test"
