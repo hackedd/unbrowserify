@@ -11,9 +11,15 @@
   "dependencies": {
     "uglifyjs": "^2.4.10"
   },
-  "devDependencies": {},
+  "devDependencies": {
+    "browserify": "^11.2.0",
+    "jscoverage": "^0.6.0",
+    "jslint": "^0.9.3",
+    "mocha": "^2.3.3"
+  },
   "scripts": {
-    "test": "make test"
+    "test": "make test",
+    "coverage": "make coverage"
   },
   "repository": {
     "type": "git",
