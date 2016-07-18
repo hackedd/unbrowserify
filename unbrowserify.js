@@ -235,12 +235,6 @@ function unbrowserify(filename, outputDirectory) {
             outputCode(module, moduleFile);
         }
     }
-
-    // console.log(JSON.stringify(moduleNames, undefined, 2));
-
-    // modules = extractModules(moduleObject);
-    // console.log(ast);
-    //outputCode(ast);
 }
 
 module.exports = {
